@@ -12,4 +12,7 @@ type Client interface {
 	// Wait blocks until the state at remote is newer than the passed in state,
 	// used to wait for a slot in the semaphore.
 	Wait(context.Context, State) error
+	// Reset resets the semaphore remote state, useful if reusing semaphores that
+	// have not been unlocked by all parties.
+	Reset() error
 }

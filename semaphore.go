@@ -27,6 +27,11 @@ func NewSemaphore(c Client, holder string) *Semaphore {
 	return s
 }
 
+// Reset resets the semaphore releasing all locks.
+func (s *Semaphore) Reset() error {
+	return s.client.Reset()
+}
+
 // SetLimit alters the concurrent lock holders limit for the semaphore
 func (s *Semaphore) SetLimit(ctx context.Context, limit int) error {
 	err := s.applyState(ctx, func() error {

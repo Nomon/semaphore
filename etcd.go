@@ -32,16 +32,36 @@ func NewEtcdClient(c client.Client, key string) (*EtcdClient, error) {
 	if key != "" {
 		k = key
 	}
+	return NewEtcdKeysAPI(client.NewKeysAPI(c), k)
+}
 
-	elc := &EtcdClient{client.NewKeysAPI(c), k}
-	if err := elc.create(); err != nil {
+func NewEtcdKeysAPI(c client.KeysAPI, key string) (*EtcdClient, error) {
+	k := path.Join(DefaultPrefix, DefaultKey)
+	if key != "" {
+		k = key
+	}
+	elc := &EtcdClient{c, k}
+	if err := elc.init(); err != nil {
 		return nil, err
 	}
 	return elc, nil
 }
 
+// Reset force resets the semaphore to default empty state
+func (c *EtcdClient) Reset() error {
+	s := NewState()
+	b, err := json.Marshal(s)
+	if err != nil {
+		return err
+	}
+	if _, err := c.client.Set(context.Background(), c.keypath, string(b), nil); err != nil {
+		return err
+	}
+	return nil
+}
+
 // create ensures that a valid state exists in the remote at c.keypath
-func (c *EtcdClient) create() error {
+func (c *EtcdClient) init() error {
 	s := NewState()
 
 	b, err := json.Marshal(s)

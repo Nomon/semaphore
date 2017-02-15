@@ -55,6 +55,11 @@ func (tc *testClient) Save(ctx context.Context, s State) error {
 	tc.c.Broadcast()
 	return nil
 }
+func (tc *testClient) Reset() error {
+	tc.s = NewState()
+	tc.c.Broadcast()
+	return nil
+}
 
 func (tc *testClient) Wait(ctx context.Context, s State) error {
 	tc.m.Lock()
