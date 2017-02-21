@@ -7,9 +7,15 @@ import (
 
 // State is the semaphores serialized state that is passed to client for syncing.
 type State struct {
+	// Index is an monotonically increasing number that increases any time it is changed.
+	// it is used to make sure operations applied against remote state are not overwritten
+	// by changes against an older state.
 	Index     uint64   `json:"-"`
+	// Semaphore is amount of locks left to give out in the state
 	Semaphore int      `json:"semaphore"`
+	// Limit limits the max number of concurrent locks
 	Limit     int      `json:"limit"`
+	// Holders contain all the current semaphore lock holders
 	Holders   []string `json:"holders"`
 }
 
@@ -22,6 +28,7 @@ func NewState() *State {
 	}
 }
 
+// setLimit sets the states limit to the passed in limit and adjusts the semaphore count accordingly.
 func (s *State) setLimit(limit int) {
 	change := s.Limit - limit
 	s.Semaphore = s.Semaphore - change
@@ -52,25 +59,14 @@ func (s *State) removeHolder(holder string) bool {
 	return false
 }
 
-// hasHolder returns true if the state already contains holder
-func (s *State) hasHolder(holder string) bool {
-	for _, h := range s.Holders {
-		if h == holder {
-			return true
-		}
-	}
-	return false
-}
-
 // lock aquires a slot in the semaphore state for holder
 func (s *State) lock(holder string) error {
-	if s.hasHolder(holder) {
-		// already locked to us.
-		return nil
-	}
+	// holder cannot lock state, semaphore is all empty
+	// error signals for Semaphore to wait for state to change before retrying.
 	if s.Semaphore <= 0 {
 		return errors.New("Semaphore locked")
 	}
+	// if holder was 
 	if s.addHolder(holder) {
 		s.Semaphore = s.Semaphore - 1
 	}
@@ -79,19 +75,9 @@ func (s *State) lock(holder string) error {
 
 // unlock unlocks the semaphore for the owner
 func (s *State) unlock(holder string) error {
+	// if the holder was actually remove, increase semaphore
 	if s.removeHolder(holder) {
 		s.Semaphore = s.Semaphore + 1
 	}
 	return nil
-}
-
-func (s *State) apply(state *State) {
-	s.Index = state.Index
-	s.Semaphore = state.Semaphore
-	s.Limit = state.Limit
-	if state.Holders == nil {
-		s.Holders = make([]string, 0)
-	} else {
-		s.Holders = state.Holders
-	}
 }
