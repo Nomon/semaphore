@@ -28,6 +28,14 @@ func NewState() *State {
 	}
 }
 
+func  (s *State) Copy() *State {
+	cp := *s
+	cp.Holders = make([]string, len(s.Holders))
+	if len(s.Holders) > 0 {
+		copy(cp.Holders, s.Holders)
+	}
+	return cp
+}
 // setLimit sets the states limit to the passed in limit and adjusts the semaphore count accordingly.
 func (s *State) setLimit(limit int) {
 	change := s.Limit - limit
